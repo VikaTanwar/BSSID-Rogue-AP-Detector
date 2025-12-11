@@ -4,7 +4,7 @@ import requests
 import json
 import os
 
-API_URL = "http://127.0.0.1:8000/predict"
+API_URL =  "https://bssid-rogue-ap-detector.onrender.com/predict"
 LAST_SCAN_FILE = "last_scan.json"
 
 print("Reading current WiFi interface info...")
