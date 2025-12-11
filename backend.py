@@ -18,7 +18,7 @@ TRUSTED_FILE = Path("trusted_networks.csv")
 app = FastAPI(title="BSSID Rogue AP Detector")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:5500", "http://localhost:5500", "https://vikatanwar.github.io"],
+    allow_origins=["http://127.0.0.1:5500", "http://localhost:5500", "https://vikatanwar.github.io","https://vikatanwar.github.io/BSSID-Rogue-AP-Detector"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
