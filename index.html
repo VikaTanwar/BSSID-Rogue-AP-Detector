@@ -513,9 +513,9 @@ document.getElementById("scanForm").addEventListener("submit", async (e) => {
 async function loadLastScan() {
     try {
         showToast("Scanning connected Wi‑Fi (last_scan.json)...");
-        const res = await fetch("last_scan.json?ts=" + Date.now());
+                const res = await fetch(apiBase + "/last-scan");
         if (!res.ok) {
-            alert("No last_scan.json found. Pehle scan_current_wifi.py run karo.");
+            alert("No last_scan.json found.");
             return;
         }
         const data = await res.json();
