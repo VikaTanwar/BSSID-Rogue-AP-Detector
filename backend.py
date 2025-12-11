@@ -11,6 +11,7 @@ from pydantic import BaseModel
 import csv
 from pathlib import Path
 from datetime import datetime
+import json, os
 
 TRUSTED_FILE = Path("trusted_networks.csv")
 
@@ -22,6 +23,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app = FastAPI()
+
+LAST_SCAN_FILE = "last_scan.json"
+
+@app.get("/last-scan")
+def get_last_scan():
+    if not os.path.exists(LAST_SCAN_FILE):
+        return {"detail": "no scan yet"}
+    with open(LAST_SCAN_FILE, "r") as f:
+        data = json.load(f)
+    return data
 
 df = pd.read_csv("wifi_networks_dataset.csv")
 
