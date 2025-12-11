@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BSSID Rogue AP Detector Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: radial-gradient(circle at top, #4f46e5 0, #020617 55%);
+            color: #e5e7eb;
+            padding: 32px;
+            font-size: 16px;
+        }
+        .app { max-width: 1150px; margin: 0 auto; }
+        .card {
+            background: rgba(2,6,23,0.96);
+            backdrop-filter: blur(18px);
+            border-radius: 18px;
+            padding: 30px 32px;
+            box-shadow: 0 22px 55px rgba(15,23,42,0.9);
+            border: 1px solid #1f2937;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            gap: 18px;
+        }
+        .title {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+        .subtitle {
+            font-size: 15px;
+            color: #9ca3af;
+            margin-top: 4px;
+        }
+        .badge {
+            padding: 7px 13px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge-green { background: rgba(16,185,129,0.12); color: #6ee7b7; }
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: currentColor;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1.5fr 1.1fr;
+            gap: 24px;
+        }
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #9ca3af;
+            margin-bottom: 16px;
+        }
+        form {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px 18px;
+        }
+        label {
+            font-size: 14px;
+            color: #9ca3af;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
+        input, select {
+            width: 100%;
+            padding: 11px 12px;
+            border-radius: 10px;
+            border: 1px solid #1f2937;
+            background: #020617;
+            color: #e5e7eb;
+            font-size: 15px;
+        }
+        input:focus, select:focus {
+            outline: 1px solid #3b82f6;
+            border-color: #3b82f6;
+        }
+        .full-width { grid-column: span 2; }
+        .actions {
+            margin-top: 14px;
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 11px 22px;
+            border-radius: 999px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e, #06b6d4);
+            color: white;
+        }
+        .btn-ghost {
+            background: transparent;
+            color: #9ca3af;
+            border: 1px solid #1f2937;
+        }
+        .status-card {
+            background: radial-gradient(circle at top, rgba(56,189,248,0.25), transparent 60%),
+                        #020617;
+            border-radius: 16px;
+            padding: 20px 22px;
+            border: 1px solid #1f2937;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .status-label {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: #9ca3af;
+        }
+        .prediction-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            border-radius: 999px;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .prediction-safe {
+            background: rgba(34,197,94,0.16);
+            color: #bbf7d0;
+        }
+        .prediction-rogue {
+            background: rgba(248,113,113,0.2);
+            color: #fecaca;
+        }
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+        .metric-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e5e7eb;
+        }
+        .risk-bar-bg {
+            margin-top: 8px;
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: #111827;
+            overflow: hidden;
+        }
+        .risk-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg,#22c55e,#eab308,#ef4444);
+            transition: width 0.25s ease-out;
+        }
+        .reason-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #9ca3af;
+            margin-top: 8px;
+        }
+        #reasons {
+            margin-top: 4px;
+            padding-left: 18px;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+        .table {
+            margin-top: 16px;
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .table th, .table td {
+            padding: 7px 9px;
+            border-bottom: 1px solid #111827;
+        }
+        .table th {
+            text-align: left;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+        }
+        .chip-safe {
+            background: rgba(34,197,94,0.15);
+            color: #86efac;
+        }
+        .chip-rogue {
+            background: rgba(248,113,113,0.18);
+            color: #fecaca;
+        }
+        .chip-trusted {
+            background: rgba(56,189,248,0.18);
+            color: #7dd3fc;
+        }
+        #toast {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            padding: 9px 14px;
+            background: #111827;
+            color: #e5e7eb;
+            border-radius: 999px;
+            font-size: 14px;
+            border: 1px solid #1f2937;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease-out;
+        }
+        @media (max-width: 840px) {
+            body { padding: 16px; font-size: 15px; }
+            .layout { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 8px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="card">
+        <div class="header">
+            <div>
+                <div class="title">BSSID Rogue AP Detector</div>
+                <div class="subtitle">AI-based risk scoring for your Wi‑Fi connection</div>
+            </div>
+            <div style="text-align:right;">
+                <span class="badge badge-green">
+                    <span class="badge-dot"></span>
+                    Backend running
+                </span>
+                <div style="font-size:13px; color:#9ca3af; margin-top:4px;" id="lastScanMeta">
+                    Last scan: not loaded
+                </div>
+            </div>
+        </div>
+
+        <div class="layout">
+            <div>
+                <div class="section-title">Input WiFi scan</div>
+                <form id="scanForm">
+                    <div>
+                        <label>BSSID</label>
+                        <input type="text" id="bssid" required>
+                    </div>
+                    <div>
+                        <label>SSID</label>
+                        <input type="text" id="ssid" required>
+                    </div>
+                    <div>
+                        <label>Signal strength (dBm)</label>
+                        <input type="number" step="0.1" id="signal" required>
+                    </div>
+                    <div>
+                        <label>Channel</label>
+                        <input type="number" id="channel" required>
+                    </div>
+                    <div>
+                        <label>Frequency (MHz)</label>
+                        <input type="number" id="freq" required>
+                    </div>
+                    <div>
+                        <label>Encryption</label>
+                        <select id="encryption" required>
+                            <option value="">Select...</option>
+                            <option>Open</option>
+                            <option>WEP</option>
+                            <option>WPA</option>
+                            <option>WPA2</option>
+                            <option>WPA2/WPA3</option>
+                            <option>WPA3</option>
+                            <option>WPA2-Personal</option>
+                        </select>
+                    </div>
+                    <div class="full-width">
+                        <label>Vendor / Device type</label>
+                        <input type="text" id="vendor" required>
+                    </div>
+                    <div class="full-width actions">
+                        <button type="submit" class="btn-primary">Run AI prediction</button>
+                        <button type="button" class="btn-ghost" id="loadScanBtn">Scan connected Wi‑Fi</button>
+                        <button type="button" class="btn-ghost" id="markTrustedBtn">Mark current Wi‑Fi as trusted</button>
+                        <button type="button" class="btn-ghost" id="clearBtn">Clear form</button>
+                    </div>
+                </form>
+            </div>
+
+            <div>
+                <div class="section-title">Detection result</div>
+                <div class="status-card">
+                    <div class="status-label">Current access point</div>
+                    <div id="predictionBadge" class="prediction-badge prediction-safe">
+                        <span id="predictionText">Waiting for scan</span>
+                    </div>
+
+                    <div class="risk-bar-bg">
+                        <div id="riskBar" class="risk-bar-fill"></div>
+                    </div>
+
+                    <div class="metric-row" style="margin-top:8px;">
+                        <span>Rogue probability</span>
+                        <span class="metric-value" id="probValue">--</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Last BSSID</span>
+                        <span class="metric-value" id="lastBssid">--</span>
+                    </div>
+                    <div class="metric-row">
+                        <span>Last SSID</span>
+                        <span class="metric-value" id="lastSsid">--</span>
+                    </div>
+
+                    <div class="reason-title">Risk indicators</div>
+                    <ul id="reasons"></ul>
+
+                    <table class="table" id="historyTable">
+                        <thead>
+                        <tr>
+                            <th>BSSID</th>
+                            <th>SSID</th>
+                            <th>Risk</th>
+                            <th>Status / Trust</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const apiBase = "http://127.0.0.1:8000";
+const trusted = new Set();
+
+function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.style.opacity = 1;
+    setTimeout(() => { t.style.opacity = 0; }, 2200);
+}
+
+function buildReasons(prob, encryption, signal) {
+    const reasons = [];
+    if (prob > 0.8) reasons.push("High anomaly score from model");
+    if (encryption && (encryption.toLowerCase().includes("open") || encryption.toLowerCase().includes("wep"))) {
+        reasons.push("Weak or open encryption");
+    }
+    if (!encryption) reasons.push("Unknown encryption type");
+    if (!Number.isNaN(signal) && signal > -35) {
+        reasons.push("Very strong signal (possible evil twin nearby)");
+    }
+    if (reasons.length === 0) reasons.push("No strong risk factors detected");
+    return reasons;
+}
+
+function renderReasons(prob, encryption, signal) {
+    const reasonsList = document.getElementById("reasons");
+    reasonsList.innerHTML = "";
+    buildReasons(prob, encryption, signal).forEach(r => {
+        const li = document.createElement("li");
+        li.textContent = r;
+        reasonsList.appendChild(li);
+    });
+}
+
+function addHistoryRow(bssid, ssid, prob, label) {
+    const tbody = document.querySelector("#historyTable tbody");
+    const tr = document.createElement("tr");
+
+    const tdBssid = document.createElement("td");
+    tdBssid.textContent = bssid;
+
+    const tdSsid = document.createElement("td");
+    tdSsid.textContent = ssid;
+
+    const tdProb = document.createElement("td");
+    tdProb.textContent = (prob * 100).toFixed(1) + "%";
+
+    const tdStatus = document.createElement("td");
+    const chip = document.createElement("span");
+
+    if (trusted.has(bssid)) {
+        chip.className = "chip chip-trusted";
+        chip.textContent = "Trusted";
+    } else if (label === "Rogue") {
+        chip.className = "chip chip-rogue";
+        chip.textContent = "Rogue";
+    } else {
+        chip.className = "chip chip-safe";
+        chip.textContent = "Normal";
+    }
+
+    tdStatus.appendChild(chip);
+
+    tr.appendChild(tdBssid);
+    tr.appendChild(tdSsid);
+    tr.appendChild(tdProb);
+    tr.appendChild(tdStatus);
+
+    tr.addEventListener("dblclick", () => {
+        trusted.add(bssid);
+        chip.className = "chip chip-trusted";
+        chip.textContent = "Trusted";
+        showToast("Marked " + bssid + " as trusted for this session.");
+    });
+
+    tbody.prepend(tr);
+
+    const maxRows = 6;
+    while (tbody.rows.length > maxRows) {
+        tbody.deleteRow(tbody.rows.length - 1);
+    }
+}
+
+document.getElementById("scanForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const bssid = document.getElementById("bssid").value.trim();
+    const ssid = document.getElementById("ssid").value.trim();
+    const signal = parseFloat(document.getElementById("signal").value);
+    const channel = parseInt(document.getElementById("channel").value, 10);
+    const freq = parseInt(document.getElementById("freq").value, 10);
+    const encryption = document.getElementById("encryption").value;
+    const vendor = document.getElementById("vendor").value.trim();
+
+    const payload = {
+        bssid, ssid,
+        signal_strength: signal,
+        channel, frequency: freq,
+        encryption, vendor
+    };
+
+    const badge = document.getElementById("predictionBadge");
+    const text = document.getElementById("predictionText");
+    const probSpan = document.getElementById("probValue");
+    const lastBssid = document.getElementById("lastBssid");
+    const lastSsid = document.getElementById("lastSsid");
+    const riskBar = document.getElementById("riskBar");
+
+    text.textContent = "Running model...";
+    badge.className = "prediction-badge prediction-safe";
+    showToast("Sending scan to AI model...");
+
+    try {
+        const res = await fetch(apiBase + "/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        const label = data.prediction;
+        const prob = data.probability_rogue ?? 0;
+
+        if (label === "Rogue") {
+            badge.className = "prediction-badge prediction-rogue";
+            text.textContent = "Rogue access point";
+        } else {
+            badge.className = "prediction-badge prediction-safe";
+            text.textContent = "Normal access point";
+        }
+
+        probSpan.textContent = (prob * 100).toFixed(1) + "%";
+        lastBssid.textContent = bssid;
+        lastSsid.textContent = ssid;
+        riskBar.style.width = (prob * 100) + "%";
+
+        renderReasons(prob, encryption, signal);
+        addHistoryRow(bssid, ssid, prob, label);
+        showToast("Prediction updated.");
+    } catch (err) {
+        badge.className = "prediction-badge prediction-rogue";
+        text.textContent = "Error contacting API";
+        probSpan.textContent = "--";
+        riskBar.style.width = "0%";
+        showToast("API error while predicting.");
+    }
+});
+
+async function loadLastScan() {
+    try {
+        showToast("Scanning connected Wi‑Fi (last_scan.json)...");
+        const res = await fetch("last_scan.json?ts=" + Date.now());
+        if (!res.ok) {
+            alert("No last_scan.json found. Pehle scan_current_wifi.py run karo.");
+            return;
+        }
+        const data = await res.json();
+
+        document.getElementById("bssid").value = data.bssid || "";
+        document.getElementById("ssid").value = data.ssid || "";
+        document.getElementById("signal").value = data.signal_strength || "";
+        document.getElementById("channel").value = data.channel || "";
+        document.getElementById("freq").value = data.frequency || "";
+        document.getElementById("encryption").value = data.encryption || "";
+        document.getElementById("vendor").value = data.vendor || "Generic";
+
+        const badge = document.getElementById("predictionBadge");
+        const text = document.getElementById("predictionText");
+        const probSpan = document.getElementById("probValue");
+        const lastBssid = document.getElementById("lastBssid");
+        const lastSsid = document.getElementById("lastSsid");
+        const riskBar = document.getElementById("riskBar");
+
+        const label = data.prediction || "Unknown";
+        const prob = data.probability_rogue || 0;
+        const signal = data.signal_strength || -60;
+        const encryption = data.encryption || "";
+
+        if (label === "Rogue") {
+            badge.className = "prediction-badge prediction-rogue";
+            text.textContent = "Rogue access point";
+        } else {
+            badge.className = "prediction-badge prediction-safe";
+            text.textContent = "Normal access point";
+        }
+
+        probSpan.textContent = (prob * 100).toFixed(1) + "%";
+        lastBssid.textContent = data.bssid || "--";
+        lastSsid.textContent = data.ssid || "--";
+        riskBar.style.width = (prob * 100) + "%";
+
+        renderReasons(prob, encryption, signal);
+        addHistoryRow(data.bssid || "", data.ssid || "", prob, label);
+
+        const meta = document.getElementById("lastScanMeta");
+        meta.textContent = "Last scan loaded for SSID: " + (data.ssid || "unknown");
+        showToast("Connected Wi‑Fi loaded into dashboard.");
+    } catch (e) {
+        alert("Failed to load last scan: " + e);
+    }
+}
+
+document.getElementById("loadScanBtn").addEventListener("click", () => {
+    loadLastScan();
+});
+
+document.getElementById("clearBtn").addEventListener("click", () => {
+    document.getElementById("scanForm").reset();
+    document.getElementById("probValue").textContent = "--";
+    document.getElementById("lastBssid").textContent = "--";
+    document.getElementById("lastSsid").textContent = "--";
+    document.getElementById("predictionText").textContent = "Waiting for scan";
+    document.getElementById("predictionBadge").className = "prediction-badge prediction-safe";
+    document.getElementById("riskBar").style.width = "0%";
+    document.getElementById("reasons").innerHTML = "";
+    showToast("Form cleared.");
+});
+
+document.getElementById("markTrustedBtn").addEventListener("click", async () => {
+    const bssid = document.getElementById("bssid").value.trim();
+    const ssid = document.getElementById("ssid").value.trim();
+    if (!bssid || !ssid) {
+        alert("BSSID aur SSID fill hona chahiye.");
+        return;
+    }
+    try {
+        await fetch(apiBase + "/mark_trusted", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ bssid, ssid })
+        });
+        showToast("Saved as trusted network.");
+    } catch (e) {
+        alert("Failed to save trusted network: " + e);
+    }
+});
+
+</script>
+</body>
+</html>
